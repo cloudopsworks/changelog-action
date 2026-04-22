@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.11.0] - 2026-04-22
+### :sparkles: New Features
+- [`ac299fa`](https://github.com/cloudopsworks/changelog-action/commit/ac299facea30f9fa1d9de0cf548e5707fefcd75f) - add working_dir input and support changelog from first commit when no previous tag exists
+
+### :wrench: Chores
+- [`b234962`](https://github.com/cloudopsworks/changelog-action/commit/b234962cb249fe69dcf6afbf817a270c1b4e1eb5) - **deps**: bump lodash from 4.17.21 to 4.18.1 *(commit by [@dependabot[bot]](https://github.com/apps/dependabot))*
+- [`2b35152`](https://github.com/cloudopsworks/changelog-action/commit/2b35152b521a11aa1a9eb3f9f9637a5a8788e242) - update .gitignore to exclude editor and AI-related files
+
+
 ## [v1.10.3] - 2025-09-08
 ### :bug: Bug Fixes
 - [`4fe6d8d`](https://github.com/requarks/changelog-action/commit/4fe6d8d4e49245e9cef5237fa0f07110930a2a11) - omit arrow icon in related issues when useGitmojis is false *(commit by [@NGPixel](https://github.com/NGPixel))*
@@ -143,3 +152,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [v1.10.1]: https://github.com/requarks/changelog-action/compare/v1.10.0...v1.10.1
 [v1.10.2]: https://github.com/requarks/changelog-action/compare/v1.10.1...v1.10.2
 [v1.10.3]: https://github.com/requarks/changelog-action/compare/v1.10.2...v1.10.3
+[v1.11.0]: https://github.com/cloudopsworks/changelog-action/compare/v1.10.3...v1.11.0
