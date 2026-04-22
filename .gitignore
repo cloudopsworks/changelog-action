@@ -104,3 +104,10 @@ typings/
 
 workflow
 test-output.md
+
+# More exclusions
+.idea/
+.vscode/
+.claude/
+.ai/
+.omc/
