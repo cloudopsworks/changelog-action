@@ -50741,6 +50741,7 @@ const core = __nccwpck_require__(7484)
 const _ = __nccwpck_require__(2356)
 const cc = __nccwpck_require__(7397)
 const fs = (__nccwpck_require__(9896).promises)
+const path = __nccwpck_require__(6928)
 const index_process = __nccwpck_require__(932)
 const { setTimeout: index_setTimeout } = __nccwpck_require__(6460)
 
@@ -50802,6 +50803,7 @@ function buildSubject ({ writeToFile, subject, author, authorUrl, owner, repo })
 
 async function main () {
   const token = core.getInput('token')
+  const workingDir = core.getInput('working_dir') || '.'
   const tag = core.getInput('tag')
   const fromTag = core.getInput('fromTag')
   const toTag = core.getInput('toTag')
@@ -50854,7 +50856,7 @@ async function main () {
       return core.setFailed('Couldn\'t find the latest tag. Make sure you have an existing tag already before creating a new one.')
     }
     if (!previousTag) {
-      return core.setFailed('Couldn\'t find a previous tag. Make sure you have at least 2 tags already (current tag + previous initial tag).')
+      core.info('No previous tag found. Changelog will be generated from the first commit.')
     }
 
     if (latestTag.name !== tag) {
@@ -50862,7 +50864,9 @@ async function main () {
     }
 
     core.info(`Using latest tag: ${latestTag.name}`)
-    core.info(`Using previous tag: ${previousTag.name}`)
+    if (previousTag) {
+      core.info(`Using previous tag: ${previousTag.name}`)
+    }
   } else if (fromTag && toTag) {
     // GET FROM + TO TAGS FROM INPUTS
 
@@ -50876,27 +50880,49 @@ async function main () {
 
   // GET COMMITS
 
-  let curPage = 0
-  let totalCommits = 0
-  let hasMoreCommits = false
   const commits = []
-  do {
-    hasMoreCommits = false
-    curPage++
-    const commitsRaw = await gh.rest.repos.compareCommitsWithBasehead({
-      owner,
-      repo,
-      basehead: `${previousTag.name}...${latestTag.name}`,
-      page: curPage,
-      per_page: 100
-    })
-    totalCommits = _.get(commitsRaw, 'data.total_commits', 0)
-    const rangeCommits = _.get(commitsRaw, 'data.commits', [])
-    commits.push(...rangeCommits)
-    if ((curPage - 1) * 100 + rangeCommits.length < totalCommits) {
-      hasMoreCommits = true
-    }
-  } while (hasMoreCommits)
+  if (previousTag) {
+    let curPage = 0
+    let totalCommits = 0
+    let hasMoreCommits = false
+    do {
+      hasMoreCommits = false
+      curPage++
+      const commitsRaw = await gh.rest.repos.compareCommitsWithBasehead({
+        owner,
+        repo,
+        basehead: `${previousTag.name}...${latestTag.name}`,
+        page: curPage,
+        per_page: 100
+      })
+      totalCommits = _.get(commitsRaw, 'data.total_commits', 0)
+      const rangeCommits = _.get(commitsRaw, 'data.commits', [])
+      commits.push(...rangeCommits)
+      if ((curPage - 1) * 100 + rangeCommits.length < totalCommits) {
+        hasMoreCommits = true
+      }
+    } while (hasMoreCommits)
+  } else {
+    // No previous tag — fetch all commits up to latestTag
+    let curPage = 0
+    let hasMoreCommits = false
+    do {
+      hasMoreCommits = false
+      curPage++
+      const commitsRaw = await gh.rest.repos.listCommits({
+        owner,
+        repo,
+        sha: latestTag.target.oid,
+        per_page: 100,
+        page: curPage
+      })
+      const rangeCommits = _.get(commitsRaw, 'data', [])
+      commits.push(...rangeCommits)
+      if (rangeCommits.length === 100) {
+        hasMoreCommits = true
+      }
+    } while (hasMoreCommits)
+  }
 
   if (!commits || commits.length < 1) {
     return core.setFailed('Couldn\'t find any commits between latest and previous tags.')
@@ -51104,11 +51130,12 @@ async function main () {
 
   // PARSE EXISTING CHANGELOG
 
+  const changelogFullPath = path.join(workingDir, changelogFilePath)
   let chglog = ''
   try {
-    chglog = await fs.readFile(changelogFilePath, 'utf8')
+    chglog = await fs.readFile(changelogFullPath, 'utf8')
   } catch (err) {
-    core.info(`Couldn't find a ${changelogFilePath}, creating a new one...`)
+    core.info(`Couldn't find a ${changelogFullPath}, creating a new one...`)
     chglog = `# Changelog
 All notable changes to this project will be documented in this file.
 
@@ -51143,11 +51170,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   if (!output.endsWith('\n')) {
     output += '\n'
   }
-  output += `[${latestTag.name}]: ${githubServerUrl}/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}\n`
+  if (previousTag) {
+    output += `[${latestTag.name}]: ${githubServerUrl}/${owner}/${repo}/compare/${previousTag.name}...${latestTag.name}\n`
+  } else {
+    output += `[${latestTag.name}]: ${githubServerUrl}/${owner}/${repo}/releases/tag/${latestTag.name}\n`
+  }
 
   // WRITE CHANGELOG TO FILE
 
-  await fs.writeFile(changelogFilePath, output)
+  await fs.writeFile(changelogFullPath, output)
 }
 
 main()

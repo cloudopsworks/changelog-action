@@ -5,8 +5,12 @@ inputs:
   token:
     description: GitHub Token
     required: true
+  working_dir:
+    description: Working directory for the action (useful for multi-repository checkouts)
+    required: false
+    default: '.'
   tag:
-    description: The latest tag (which triggered this job) (only if using latest tag)
+    description: The latest tag (which triggered this job). If no previous tag exists, changelog is generated from the first commit.
     required: false
   fromTag:
     description: The tag from which the changelog is to be determined (only if using tag range)
